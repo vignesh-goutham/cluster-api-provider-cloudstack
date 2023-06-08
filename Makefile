@@ -175,10 +175,8 @@ generate-conversion: $(CONVERSION_GEN)
 ## Build
 ## --------------------------------------
 
-MANAGER_BIN_INPUTS=$(shell find ./controllers ./api ./pkg -name "*mock*" -prune -o -name "*test*" -prune -o -type f -print) main.go go.mod go.sum
 .PHONY: build
 build: lint binaries generate release-manifests ## Build manager binary.
-$(BIN_DIR)/manager: $(MANAGER_BIN_INPUTS)
 	go build -o $(BIN_DIR)/manager main.go
 
 .PHONY: build-for-docker
