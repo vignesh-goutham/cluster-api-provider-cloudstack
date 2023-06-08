@@ -244,20 +244,43 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 ## --------------------------------------
 ## Tests
 ## --------------------------------------
-export KUBEBUILDER_ASSETS=$(TOOLS_BIN_DIR)
+#export KUBEBUILDER_ASSETS=$(TOOLS_BIN_DIR)
+#
+#.PHONY: generate-manifest-test
+#generate-manifest-test: $(CONTROLLER_GEN) ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
+#	$(CONTROLLER_GEN) \
+#		paths="./test/fakes" \
+#		crd:crdVersions=v1 \
+#		rbac:roleName=manager-role \
+#		output:crd:artifacts:config=test/fakes \
+#		webhook
+#
+#.PHONY: test
+#test: ## Run tests.
+#test: $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) lint generate-manifest-test
+#	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
+#	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
+#	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
+#		./hack/testing_ginkgo_recover_statements.sh --remove; exit $$EXIT_STATUS
 
+export KUBEBUILDER_ASSETS=$(TOOLS_BIN_DIR)
+DEEPCOPY_GEN_TARGETS_TEST=$(shell find test/fakes -type d -name "fakes" -exec echo {}\/zz_generated.deepcopy.go \;)
+DEEPCOPY_GEN_INPUTS_TEST=$(shell find test/fakes/* -name "*zz_generated*" -prune -o -type f -print)
+.PHONY: generate-deepcopy-test
+generate-deepcopy-test: $(DEEPCOPY_GEN_TARGETS_TEST) ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+test/fakes/zz_generated.deepcopy.go: $(CONTROLLER_GEN) $(DEEPCOPY_GEN_INPUTS_TEST)
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+MANIFEST_GEN_INPUTS_TEST=$(shell find test/fakes/* -name "*zz_generated*" -prune -o -type f -print)
 .PHONY: generate-manifest-test
-generate-manifest-test: $(CONTROLLER_GEN) ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
-	$(CONTROLLER_GEN) \
-		paths="./test/fakes" \
-		crd:crdVersions=v1 \
-		rbac:roleName=manager-role \
-		output:crd:artifacts:config=test/fakes \
-		webhook
+generate-manifest-test: config/.flag-test.mk ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
+config/.flag-test.mk: $(CONTROLLER_GEN) $(MANIFEST_GEN_INPUTS_TEST)
+	$(CONTROLLER_GEN) crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./test/fakes" output:crd:artifacts:config=test/fakes
+	@touch config/.flag-test.mk
 
 .PHONY: test
 test: ## Run tests.
-test: $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) lint generate-manifest-test generate-go
+test: generate-deepcopy-test generate-manifest-test generate-go lint $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
