@@ -257,7 +257,7 @@ generate-manifest-test: $(CONTROLLER_GEN) ## Generates crd, webhook, rbac, and o
 
 .PHONY: test
 test: ## Run tests.
-test: lint generate generate-manifest-test $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD)
+test: $(GINKGO_V2) $(KUBECTL) $(API_SERVER) $(ETCD) lint generate-manifest-test generate-go
 	@./hack/testing_ginkgo_recover_statements.sh --add # Add ginkgo.GinkgoRecover() statements to controllers.
 	@# The following is a slightly funky way to make sure the ginkgo statements are removed regardless the test results.
 	@$(GINKGO_V2) --label-filter="!integ" --cover -coverprofile cover.out --covermode=atomic -v ./api/... ./controllers/... ./pkg/...; EXIT_STATUS=$$?;\
