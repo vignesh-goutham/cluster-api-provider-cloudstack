@@ -244,6 +244,7 @@ cluster-api/tilt-settings.json: hack/tilt-settings.json cluster-api
 ## --------------------------------------
 ## Tests
 ## --------------------------------------
+export KUBEBUILDER_ASSETS=$(TOOLS_BIN_DIR)
 
 .PHONY: generate-manifest-test
 generate-manifest-test: $(CONTROLLER_GEN) ## Generates crd, webhook, rbac, and other configuration manifests from kubebuilder instructions in go comments.
